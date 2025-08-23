@@ -15,6 +15,11 @@
     --hover-brightness: 1.2;
 }
 
+/* Add critical CSS for above-the-fold content to improve initial rendering */
+.critical {
+    /* Add any critical styles here if needed */
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -78,8 +83,8 @@ h1 {
 }
 
 .current-position a {
-    color: var(--teal);
-    text-decoration: none;
+    color: #00FFFF; /* Cyan for better contrast */
+    text-decoration: underline; /* Underline for better link distinguishability */
     transition: filter 0.3s ease;
 }
 
@@ -149,12 +154,13 @@ h1 {
 .resume-button {
     display: inline-block;
     padding: 0.8rem 2rem;
-    background-color: var(--accent);
+    background-color: #B8860B; /* Darker gold for better contrast with white text */
     color: var(--text);
     text-decoration: none;
     border-radius: 50px;
     font-weight: 600;
     transition: transform 0.3s ease, filter 0.3s ease;
+    border: 2px solid #DAAB2D; /* Add a border for better visibility */
 }
 
 .resume-button:hover {
@@ -170,6 +176,7 @@ h1 {
 
     .logo {
         width: 120px;
+        height: 120px;
     }
 
     h1 {
@@ -215,8 +222,8 @@ footer {
 }
 
 .last-updated a {
-    color: var(--accent);
-    text-decoration: none;
+    color: #FFD700; /* Gold for better contrast */
+    text-decoration: underline; /* Underline for better link distinguishability */
     transition: filter 0.3s ease;
     padding: 0 0.3rem;
 }

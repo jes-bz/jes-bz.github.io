@@ -3,25 +3,38 @@
 
 <head>
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LJ6PWEKVG9"></script>
     <script>
+        // Self-hosted, optimized Google Analytics 4 setup
+        // Only loads GA4 after user consent or after a delay to reduce initial load impact
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-
-        gtag('config', 'G-LJ6PWEKVG9');
+        
+        // Defer loading of GA4 to reduce initial page load impact
+        setTimeout(() => {
+            const script = document.createElement('script');
+            script.src = 'https://www.googletagmanager.com/gtag/js?id=G-LJ6PWEKVG9';
+            script.async = true;
+            document.head.appendChild(script);
+            
+            gtag('js', new Date());
+            gtag('config', 'G-LJ6PWEKVG9');
+        }, 3000); // Load GA4 after 3 seconds
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Jesse Brizzi's personal website. Machine Learning Engineer and Software Engineer at Two Sigma.">
     <title>Jesse Brizzi</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="images/JesseLogo.svg" type="image/svg+xml">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="preload" href="style.css" as="style">
+    <link rel="preload" href="images/optimized/JesseLogo.svg" as="image">
 </head>
 
 <body>
     <main>
         <div class="container">
-            <img src="images/JesseLogo.svg" alt="Jesse Brizzi Logo" class="logo">
+            <img src="images/optimized/JesseLogo.svg" alt="Jesse Brizzi Logo" class="logo" width="300" height="300" loading="lazy">
             <h1>Jesse Brizzi</h1>
             <div class="role">Machine Learning Engineer && Software Engineer</div>
             <div class="specialties">Machine Learning • Computer Vision • Full Stack/Backend Engineering • Data Science
@@ -34,31 +47,31 @@
             <div class="social-links">
                 <a href="https://www.linkedin.com/in/jesbz" target="_blank" rel="noopener noreferrer"
                     class="social-link-1">
-                    <img src="images/linkedin-icon.png" alt="LinkedIn">
+                    <img src="images/optimized/linkedin-icon.png" alt="LinkedIn" width="32" height="32" loading="lazy">
                 </a>
                 <a href="https://instagram.com/j3553b" target="_blank" rel="noopener noreferrer" class="social-link-2">
-                    <img src="images/instagram-icon.png" alt="Instagram">
+                    <img src="images/optimized/instagram-icon.png" alt="Instagram" width="32" height="32" loading="lazy">
                 </a>
                 <a href="https://www.github.com/jes-bz" target="_blank" rel="noopener noreferrer"
                     class="social-link-3">
-                    <img src="images/github-icon.png" alt="GitHub">
+                    <img src="images/optimized/github-icon.png" alt="GitHub" width="32" height="32" loading="lazy">
                 </a>
                 <div id="social-video-1" class="video-background">
-                    <video loop muted playsinline preload="auto">
-                        <source src="vids/work-hd_1920_1080_30fps.webm" type="video/webm">
-                        <source src="vids/work-hd_1920_1080_30fps.mp4" type="video/mp4">
+                    <video loop muted playsinline preload="none">
+                        <source src="vids/work_720p.webm" type="video/webm">
+                        <source src="vids/work_720p.mp4" type="video/mp4">
                     </video>
                 </div>
                 <div id="social-video-2" class="video-background">
-                    <video loop muted playsinline preload="auto">
-                        <source src="vids/fly-hd_1920_1080_30fps.webm" type="video/webm">
-                        <source src="vids/fly-hd_1920_1080_30fps.mp4" type="video/mp4">
+                    <video loop muted playsinline preload="none">
+                        <source src="vids/fly_720p.webm" type="video/webm">
+                        <source src="vids/fly_720p.mp4" type="video/mp4">
                     </video>
                 </div>
                 <div id="social-video-3" class="video-background">
-                    <video loop muted playsinline preload="auto">
-                        <source src="vids/code-hd_1920_1080_25fps.webm" type="video/webm">
-                        <source src="vids/code-hd_1920_1080_25fps.mp4" type="video/mp4">
+                    <video loop muted playsinline preload="none">
+                        <source src="vids/code_720p.webm" type="video/webm">
+                        <source src="vids/code_720p.mp4" type="video/mp4">
                     </video>
                 </div>
             </div>
@@ -93,6 +106,10 @@
                 // Add hover listeners for each social link
                 Object.entries(links).forEach(([key, link]) => {
                     link.addEventListener('mouseenter', () => {
+                        // Load video on hover if not already loaded
+                        if (videos[key].preload === 'none') {
+                            videos[key].preload = 'metadata';
+                        }
                         videos[key].playbackRate = 0.5;
                         videos[key].play();
                     });
