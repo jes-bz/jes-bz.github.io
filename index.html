@@ -25,9 +25,9 @@
     <meta name="description"
         content="Jesse Brizzi's personal website. Platform Tech Lead at Two Sigma, working on agentic AI, LLM tooling, and developer experience.">
     <title>Jesse Brizzi</title>
-    <link rel="stylesheet" href="style.css?v=20261024-scroll-animation">
+    <link rel="stylesheet" href="style.css?v=20261024-fixed-snap">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="preload" href="style.css?v=20261024-scroll-animation" as="style">
+    <link rel="preload" href="style.css?v=20261024-fixed-snap" as="style">
     <link rel="preload" href="images/optimized/JesseLogo.svg" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -132,7 +132,7 @@
             collapse: [0, 0.48], listFade: [0.46, 0.06],
             linePeak: 0.5, lineWidth: 0.16, lineShrink: [0.5, 0.18],
             introFocus: 0.25, shutdown: [0.7, 0.25], projectFocus: 0.52,
-            projectScreens: 1.35, settleDelay: 200, forwardSnap: 0.01, reverseSnap: 0.99
+            projectScreens: 1.35, settleDelay: 120, snapDuration: 420, forwardSnap: 0.01, reverseSnap: 0.99
         };
         const clamp = value => Math.max(0, Math.min(1, value));
         const ease = value => value * value * (3 - 2 * value);
@@ -141,6 +141,7 @@
         let activeScene, revealVisible, shutdownRevealed, shutdownVisible = false;
         let previousProgress = '', queued = false, settleTimer, touching = false;
         let previousScroll = window.scrollY, scrollDirection = 0, focusTarget = null;
+        let snapFrame = 0, snapping = false;
         document.querySelector('.project-header > span').textContent = `01 — ${String(rows.length).padStart(2, '0')}`;
 
         function updateFlicker() {
@@ -234,9 +235,31 @@
             intro.classList.toggle('has-overflow', intro.scrollHeight > viewport + 1);
             projects.classList.toggle('has-overflow', projectsInner.scrollHeight > viewport - 64);
             renderScene();
+            scheduleSettle();
+        }
+        function cancelSnap() {
+            cancelAnimationFrame(snapFrame);
+            snapFrame = 0;
+            snapping = false;
+            clearTimeout(settleTimer);
+        }
+        function snapTo(index) {
+            cancelSnap();
+            const start = window.scrollY;
+            if (Math.abs(layout.stops[index] - start) < 1) return;
+            const started = performance.now();
+            snapping = true;
+            function step(now) {
+                const progress = clamp((now - started) / timing.snapDuration);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                window.scrollTo({ top: start + (layout.stops[index] - start) * eased, behavior: 'instant' });
+                if (progress < 1) snapFrame = requestAnimationFrame(step);
+                else { snapping = false; snapFrame = 0; }
+            }
+            snapFrame = requestAnimationFrame(step);
         }
         function settleScene() {
-            if (touching) return;
+            if (touching || snapping) return;
             const [home, projectStop, shutdownStop] = layout.stops;
             const afterProjects = window.scrollY > projectStop + 2;
             const from = afterProjects ? projectStop : home + layout.overflow;
@@ -244,31 +267,35 @@
             const progress = (window.scrollY - from) / (to - from);
             if (progress <= 0.002 || progress >= 0.998) return;
             const threshold = scrollDirection > 0 ? timing.forwardSnap : scrollDirection < 0 ? timing.reverseSnap : 0.5;
-            window.scrollTo({ top: progress >= threshold ? to : afterProjects ? from : home, behavior: 'smooth' });
+            snapTo(progress >= threshold ? (afterProjects ? 2 : 1) : (afterProjects ? 1 : 0));
         }
         function scheduleSettle() {
             clearTimeout(settleTimer);
-            settleTimer = setTimeout(settleScene, timing.settleDelay);
+            if (!snapping && !touching) settleTimer = setTimeout(settleScene, timing.settleDelay);
         }
         window.addEventListener('scroll', () => {
             const position = window.scrollY;
             const delta = position - previousScroll;
-            if (Math.abs(delta) > 0.5) scrollDirection = Math.sign(delta);
+            if (!snapping && Math.abs(delta) > 0.5) scrollDirection = Math.sign(delta);
             previousScroll = position;
             if (!queued) { queued = true; requestAnimationFrame(renderScene); }
             scheduleSettle();
         }, { passive: true });
-        window.addEventListener('touchstart', () => { touching = true; clearTimeout(settleTimer); }, { passive: true });
+        window.addEventListener('touchstart', () => { touching = true; cancelSnap(); focusTarget = null; }, { passive: true });
+        window.addEventListener('wheel', () => { cancelSnap(); focusTarget = null; }, { passive: true });
+        window.addEventListener('keydown', event => {
+            if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) cancelSnap();
+        });
         function finishTouch() { touching = false; scheduleSettle(); }
         window.addEventListener('touchend', finishTouch, { passive: true });
         window.addEventListener('touchcancel', finishTouch, { passive: true });
         trigger.addEventListener('click', () => {
             focusTarget = { scene: 'projects', element: projectTitle };
-            window.scrollTo({ top: layout.stops[1], behavior: 'smooth' });
+            snapTo(1);
         });
         back.addEventListener('click', () => {
             focusTarget = { scene: 'intro', element: trigger };
-            window.scrollTo({ top: layout.stops[0], behavior: 'smooth' });
+            snapTo(0);
         });
         window.addEventListener('resize', measureScene);
         reducedMotion.addEventListener('change', measureScene);
