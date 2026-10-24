@@ -25,9 +25,9 @@
     <meta name="description"
         content="Jesse Brizzi's personal website. Platform Tech Lead at Two Sigma, working on agentic AI, LLM tooling, and developer experience.">
     <title>Jesse Brizzi</title>
-    <link rel="stylesheet" href="style.css?v=20261024-fixed-snap">
+    <link rel="stylesheet" href="style.css?v=20261024-button-scenes">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="preload" href="style.css?v=20261024-fixed-snap" as="style">
+    <link rel="preload" href="style.css?v=20261024-button-scenes" as="style">
     <link rel="preload" href="images/optimized/JesseLogo.svg" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -82,7 +82,7 @@
                 <li><a href="https://cattho.de" target="_blank" rel="noopener noreferrer"><span class="project-number">01</span><span class="project-name">Catthode</span><span class="project-arrow" aria-hidden="true">↗</span></a><p id="catthode-description" class="project-description">A warm, dark color theme for your favorite apps.</p></li>
                 <li><a href="https://jes.bz/life-cal/" target="_blank" rel="noopener noreferrer"><span class="project-number">02</span><span class="project-name">Life Calendar</span><span class="project-arrow" aria-hidden="true">↗</span></a><p id="calendar-description" class="project-description">Your life in weeks, as a wallpaper.</p></li>
             </ul>
-            <div class="project-details" aria-hidden="true"><div class="palette-dots"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="week-dots"></div></div>
+            <div class="project-details"><button class="palette-dots" type="button" aria-label="Color palette"><i></i><i></i><i></i><i></i><i></i><i></i></button><div class="week-dots" aria-hidden="true"></div></div>
             <button class="projects-back" type="button">↑ Back to Jesse</button>
         </div>
     </section>
@@ -112,7 +112,6 @@
         </video>
     </div>
     <script>
-        const story = document.querySelector('.scroll-story');
         const stage = document.querySelector('.scroll-stage');
         const intro = document.querySelector('.intro');
         const projects = document.querySelector('#projects');
@@ -132,24 +131,14 @@
             collapse: [0, 0.48], listFade: [0.46, 0.06],
             linePeak: 0.5, lineWidth: 0.16, lineShrink: [0.5, 0.18],
             introFocus: 0.25, shutdown: [0.7, 0.25], projectFocus: 0.52,
-            projectScreens: 1.35, settleDelay: 120, forwardSnap: 0.01, reverseSnap: 0.99,
-            snapDefaultSpeed: 2.8, snapMinSpeed: 0.9, snapMaxSpeed: 8, snapMaxDuration: 900,
-            eggSwipeDistance: 72, eggSwipeVelocity: 0.8, eggWheelDelta: 100,
-            projectArrivalTime: 650, eggGestureGap: 400
+            transitionDuration: 850
         };
         const clamp = value => Math.max(0, Math.min(1, value));
         const ease = value => value * value * (3 - 2 * value);
         const phase = (progress, [start, duration], stagger = 0) => ease(clamp((progress - start - stagger) / duration));
-        const layout = { stops: [0, 0, 0], overflow: 0 };
         let activeScene, revealVisible, shutdownRevealed, shutdownVisible = false;
-        let previousProgress = '', queued = false, settleTimer, touching = false;
-        let previousScroll = window.scrollY, previousScrollTime = performance.now();
-        let scrollDirection = 0, scrollVelocity = 0, focusTarget = null;
-        let snapFrame = 0, snapping = false;
-        let projectArrived = false, projectReadyAt = 0, shutdownUnlocked = false;
-        let touchStartY = 0, touchSamples = [];
-        let touchTravel = 0, touchStartedAtProjects = false;
-        let wheelUntil = 0, wheelStartedAtProjects = false, gestureFloor = 0;
+        let previousProgress = '', scenePosition = 0, sceneFrame = 0;
+        let destination = 0, holdTimer;
         document.querySelector('.project-header > span').textContent = `01 — ${String(rows.length).padStart(2, '0')}`;
 
         function updateFlicker() {
@@ -163,11 +152,8 @@
         document.addEventListener('visibilitychange', updateFlicker);
 
         function renderScene() {
-            queued = false;
-            const [home, projectStop, shutdownStop] = layout.stops;
-            const position = window.scrollY;
-            const progress = clamp((position - home) / (projectStop - home));
-            const powerProgress = clamp((position - projectStop) / (shutdownStop - projectStop));
+            const progress = clamp(scenePosition);
+            const powerProgress = clamp(scenePosition - 1);
             const progressKey = `${progress}:${powerProgress}`;
             if (previousProgress === progressKey) return;
             previousProgress = progressKey;
@@ -221,233 +207,52 @@
                 if (moveFocus) (scene === intro ? trigger : scene === projects ? projectTitle : scene || stage).focus({ preventScroll: true });
                 activeScene = scene;
             }
-            const activeName = activeScene === projects ? 'projects' : activeScene === intro ? 'intro' : '';
-            if (focusTarget && activeName === focusTarget.scene) {
-                focusTarget.element.focus({ preventScroll: true });
-                focusTarget = null;
-            }
+
         }
-        function measureScene() {
-            clearTimeout(settleTimer);
-            previousProgress = '';
-            activeScene = revealVisible = shutdownRevealed = undefined;
-            const viewport = window.innerHeight;
-            document.documentElement.classList.add('scroll-reveal');
-            const origin = window.scrollY + story.getBoundingClientRect().top;
-            layout.overflow = 0;
-            layout.stops = [origin, origin + viewport * timing.projectScreens, origin + viewport * (timing.projectScreens + 1)];
-            stage.style.height = `${viewport}px`;
-            stage.style.top = '0px';
-            projects.style.top = shutdown.style.top = '0px';
-            story.style.height = `${viewport + layout.stops[2] - origin}px`;
-            intro.classList.toggle('has-overflow', intro.scrollHeight > viewport + 1);
-            projects.classList.toggle('has-overflow', projectsInner.scrollHeight > viewport - 64);
-            renderScene();
-            scheduleSettle();
-        }
-        function cancelSnap() {
-            cancelAnimationFrame(snapFrame);
-            snapFrame = 0;
-            snapping = false;
-            clearTimeout(settleTimer);
-        }
-        function snapTo(index) {
-            cancelSnap();
-            if (index !== 1) gestureFloor = 0;
-            if (index === 2 && !shutdownUnlocked) return;
-            const start = window.scrollY;
-            const target = layout.stops[index];
-            const distance = Math.abs(target - start);
-            if (distance < 1) {
-                if (index === 1) {
-                    projectArrived = true;
-                    projectReadyAt = performance.now() + timing.projectArrivalTime;
-                }
-                return;
-            }
-            if (index < 2) shutdownUnlocked = false;
-            const direction = Math.sign(target - start);
-            const gestureSpeed = Math.abs(scrollVelocity);
-            const continuingGesture = Math.sign(scrollVelocity) === direction;
-            const requestedSpeed = continuingGesture && gestureSpeed > 0.05 ? gestureSpeed : timing.snapDefaultSpeed;
-            const speed = Math.max(
-                timing.snapMinSpeed,
-                distance / timing.snapMaxDuration,
-                Math.min(timing.snapMaxSpeed, requestedSpeed)
-            );
+        function navigate(index) {
+            cancelAnimationFrame(sceneFrame);
+            clearTimeout(holdTimer);
+            destination = index;
+            const start = scenePosition;
             const started = performance.now();
-            snapping = true;
+            const duration = timing.transitionDuration * Math.abs(index - start);
             function step(now) {
-                const travelled = Math.min(distance, (now - started) * speed);
-                window.scrollTo({ top: start + direction * travelled, behavior: 'instant' });
-                if (travelled < distance) snapFrame = requestAnimationFrame(step);
+                const amount = duration ? clamp((now - started) / duration) : 1;
+                scenePosition = start + (index - start) * amount;
+                renderScene();
+                if (amount < 1) sceneFrame = requestAnimationFrame(step);
                 else {
-                    snapping = false;
-                    snapFrame = 0;
-                    projectArrived = index === 1;
-                    if (projectArrived) projectReadyAt = performance.now() + timing.projectArrivalTime;
+                    sceneFrame = 0;
+                    (index === 0 ? trigger : index === 1 ? projectTitle : shutdown).focus({ preventScroll: true });
                 }
             }
-            snapFrame = requestAnimationFrame(step);
+            sceneFrame = requestAnimationFrame(step);
         }
-        function settleScene() {
-            if (touching || snapping) return;
-            if (gestureFloor === 1) { snapTo(1); return; }
-            const [home, projectStop, shutdownStop] = layout.stops;
-            const afterProjects = window.scrollY > projectStop + 2;
-            if (afterProjects && !shutdownUnlocked) { snapTo(1); return; }
-            const from = afterProjects ? projectStop : home + layout.overflow;
-            const to = afterProjects ? shutdownStop : projectStop;
-            const progress = (window.scrollY - from) / (to - from);
-            if (progress <= 0.002 || progress >= 0.998) return;
-            const threshold = scrollDirection > 0 ? timing.forwardSnap : scrollDirection < 0 ? timing.reverseSnap : 0.5;
-            snapTo(progress >= threshold ? (afterProjects ? 2 : 1) : (afterProjects ? 1 : 0));
-        }
-        function scheduleSettle() {
-            clearTimeout(settleTimer);
-            if (!snapping && !touching) settleTimer = setTimeout(settleScene, timing.settleDelay);
-        }
-        window.addEventListener('scroll', () => {
-            const now = performance.now();
-            const position = window.scrollY;
-            if (!snapping && shutdownUnlocked && previousScroll > layout.stops[1] + 2 && position <= layout.stops[1]) gestureFloor = 1;
-            if (!snapping && gestureFloor === 1 && position < layout.stops[1]) {
-                window.scrollTo({ top: layout.stops[1], behavior: 'instant' });
-                shutdownUnlocked = false;
-                projectArrived = true;
-                projectReadyAt = now + timing.projectArrivalTime;
-                previousScroll = layout.stops[1];
-                previousScrollTime = now;
-                if (!queued) { queued = true; requestAnimationFrame(renderScene); }
-                return;
+        trigger.addEventListener('click', () => navigate(1));
+        back.addEventListener('click', () => navigate(0));
+        const palette = document.querySelector('.palette-dots');
+        function cancelHold() { clearTimeout(holdTimer); }
+        palette.addEventListener('pointerdown', event => {
+            if (event.button !== 0 || destination !== 1 || sceneFrame) return;
+            palette.setPointerCapture(event.pointerId);
+            holdTimer = setTimeout(() => navigate(2), 1000);
+        });
+        ['pointerup', 'pointercancel', 'lostpointercapture', 'pointerleave'].forEach(type => palette.addEventListener(type, cancelHold));
+        palette.addEventListener('keydown', event => {
+            if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) {
+                event.preventDefault();
+                holdTimer = setTimeout(() => navigate(2), 1000);
             }
-            if (!snapping && !shutdownUnlocked && position > layout.stops[1] + 1) {
-                projectReadyAt = now + timing.projectArrivalTime;
-                wheelStartedAtProjects = false;
-                window.scrollTo({ top: layout.stops[1], behavior: 'instant' });
-                projectArrived = true;
-                projectReadyAt = now + timing.projectArrivalTime;
-                previousScroll = layout.stops[1];
-                previousScrollTime = now;
-                scrollVelocity = 0;
-                scrollDirection = 1;
-                if (!queued) { queued = true; requestAnimationFrame(renderScene); }
-                return;
-            }
-            const delta = position - previousScroll;
-            const elapsed = now - previousScrollTime;
-            if (!snapping && Math.abs(delta) > 0.5 && elapsed > 0) {
-                scrollDirection = Math.sign(delta);
-                const velocity = delta / elapsed;
-                scrollVelocity = elapsed <= 100 && Math.sign(scrollVelocity) === Math.sign(velocity)
-                    ? scrollVelocity * 0.35 + velocity * 0.65
-                    : velocity;
-                if (delta < 0 && previousScroll > layout.stops[1] && position <= layout.stops[1]) {
-                    shutdownUnlocked = false;
-                }
-            }
-            if (!snapping && !projectArrived && Math.abs(position - layout.stops[1]) < 2) {
-                projectArrived = true;
-                projectReadyAt = now + timing.projectArrivalTime;
-                wheelStartedAtProjects = false;
-            }
-            previousScroll = position;
-            previousScrollTime = now;
-            if (!queued) { queued = true; requestAnimationFrame(renderScene); }
-            scheduleSettle();
-        }, { passive: true });
-        function atProjectStop() {
-            return projectArrived && Math.abs(window.scrollY - layout.stops[1]) < 2
-                && projects.scrollTop + projects.clientHeight >= projects.scrollHeight - 2;
-        }
-        function unlockShutdown() {
-            if (!atProjectStop() || shutdownUnlocked) return false;
-            shutdownUnlocked = true;
-            touching = false;
-            scrollVelocity = timing.snapDefaultSpeed;
-            snapTo(2);
-            return true;
-        }
-        window.addEventListener('touchstart', event => {
-            touching = true;
-            gestureFloor = window.scrollY > layout.stops[1] + 2 ? 1 : 0;
-            scrollVelocity = 0;
-            cancelSnap();
-            focusTarget = null;
-            const y = event.touches[0].clientY;
-            touchStartY = y;
-            touchSamples = [{ y, time: performance.now() }];
-            touchTravel = 0;
-            touchStartedAtProjects = atProjectStop() && !shutdownUnlocked
-                && performance.now() >= projectReadyAt;
-        }, { passive: true });
-        window.addEventListener('touchmove', event => {
-            if (!touchStartedAtProjects) return;
-            const y = event.touches[0].clientY;
-            if (y < touchStartY) event.preventDefault();
-            const now = performance.now();
-            touchSamples.push({ y, time: now });
-            touchTravel = Math.max(touchTravel, touchStartY - y);
-        }, { passive: false });
-        window.addEventListener('wheel', event => {
-            const now = performance.now();
-            const newGesture = now > wheelUntil;
-            wheelUntil = now + timing.eggGestureGap;
-            if (newGesture || (event.deltaY < 0 && window.scrollY <= layout.stops[1] + 2 && !shutdownUnlocked)) {
-                gestureFloor = window.scrollY > layout.stops[1] + 2 ? 1 : 0;
-            }
-            scrollVelocity = 0;
-            cancelSnap();
-            focusTarget = null;
-            if (!atProjectStop() || shutdownUnlocked || event.deltaY <= 0) return;
-            event.preventDefault();
-            if (now < projectReadyAt) { wheelStartedAtProjects = false; return; }
-            if (newGesture) wheelStartedAtProjects = true;
-            if (!wheelStartedAtProjects) return;
-            const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
-            if (event.deltaY * unit >= timing.eggWheelDelta) unlockShutdown();
-        }, { passive: false });
+        });
+        palette.addEventListener('keyup', cancelHold);
+        palette.addEventListener('blur', cancelHold);
+        palette.addEventListener('contextmenu', event => event.preventDefault());
+        shutdown.addEventListener('click', () => navigate(1));
         window.addEventListener('keydown', event => {
-            if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) {
-                gestureFloor = window.scrollY > layout.stops[1] + 2 ? 1 : 0;
-                cancelSnap();
-            }
-            if (atProjectStop() && !shutdownUnlocked && ['ArrowDown', 'PageDown', 'End', ' '].includes(event.key)) event.preventDefault();
+            if (event.key === 'Escape') navigate(destination === 2 ? 1 : 0);
         });
-        function finishTouch() {
-            const now = performance.now();
-            const last = touchSamples.at(-1);
-            const recent = touchSamples.filter(sample => now - sample.time <= 80);
-            const first = recent[0];
-            const elapsed = last && first ? last.time - first.time : 0;
-            const touchVelocity = last && first && now - last.time <= 80 && elapsed > 0
-                ? (first.y - last.y) / elapsed : 0;
-            if (touchStartedAtProjects
-                && touchTravel >= timing.eggSwipeDistance && touchVelocity >= timing.eggSwipeVelocity) {
-                unlockShutdown();
-            }
-            touching = false;
-            touchStartedAtProjects = false;
-            scheduleSettle();
-        }
-        window.addEventListener('touchend', finishTouch, { passive: true });
-        window.addEventListener('touchcancel', () => {
-            touching = touchStartedAtProjects = false;
-            scheduleSettle();
-        }, { passive: true });
-        trigger.addEventListener('click', () => {
-            focusTarget = { scene: 'projects', element: projectTitle };
-            snapTo(1);
-        });
-        back.addEventListener('click', () => {
-            focusTarget = { scene: 'intro', element: trigger };
-            snapTo(0);
-        });
-        window.addEventListener('resize', measureScene);
-        reducedMotion.addEventListener('change', measureScene);
-        new ResizeObserver(measureScene).observe(intro);
-        document.fonts.ready.then(measureScene);
-        measureScene();
+        document.documentElement.classList.add('scroll-reveal');
+        renderScene();
         // Video hover functionality
         document.addEventListener('DOMContentLoaded', () => {
             const motion = reducedMotion;
