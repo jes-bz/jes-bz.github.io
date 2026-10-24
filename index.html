@@ -2,24 +2,6 @@
 <html lang="en">
 
 <head>
-    <!-- Google tag (gtag.js) -->
-    <script>
-        // Self-hosted, optimized Google Analytics 4 setup
-        // Only loads GA4 after user consent or after a delay to reduce initial load impact
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        
-        // Defer loading of GA4 to reduce initial page load impact
-        setTimeout(() => {
-            const script = document.createElement('script');
-            script.src = 'https://www.googletagmanager.com/gtag/js?id=G-LJ6PWEKVG9';
-            script.async = true;
-            document.head.appendChild(script);
-            
-            gtag('js', new Date());
-            gtag('config', 'G-LJ6PWEKVG9');
-        }, 3000); // Load GA4 after 3 seconds
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
