@@ -133,7 +133,9 @@
             linePeak: 0.5, lineWidth: 0.16, lineShrink: [0.5, 0.18],
             introFocus: 0.25, shutdown: [0.7, 0.25], projectFocus: 0.52,
             projectScreens: 1.35, settleDelay: 120, forwardSnap: 0.01, reverseSnap: 0.99,
-            snapDefaultSpeed: 2.8, snapMinSpeed: 0.9, snapMaxSpeed: 8, snapMaxDuration: 900
+            snapDefaultSpeed: 2.8, snapMinSpeed: 0.9, snapMaxSpeed: 8, snapMaxDuration: 900,
+            eggSwipeDistance: 72, eggSwipeVelocity: 0.8, eggWheelDelta: 100,
+            projectArrivalTime: 650, eggGestureGap: 400
         };
         const clamp = value => Math.max(0, Math.min(1, value));
         const ease = value => value * value * (3 - 2 * value);
@@ -144,6 +146,10 @@
         let previousScroll = window.scrollY, previousScrollTime = performance.now();
         let scrollDirection = 0, scrollVelocity = 0, focusTarget = null;
         let snapFrame = 0, snapping = false;
+        let projectArrived = false, projectReadyAt = 0, shutdownUnlocked = false;
+        let touchStartY = 0, touchSamples = [];
+        let touchTravel = 0, touchStartedAtProjects = false;
+        let wheelUntil = 0, wheelStartedAtProjects = false, gestureFloor = 0;
         document.querySelector('.project-header > span').textContent = `01 — ${String(rows.length).padStart(2, '0')}`;
 
         function updateFlicker() {
@@ -247,10 +253,19 @@
         }
         function snapTo(index) {
             cancelSnap();
+            if (index !== 1) gestureFloor = 0;
+            if (index === 2 && !shutdownUnlocked) return;
             const start = window.scrollY;
             const target = layout.stops[index];
             const distance = Math.abs(target - start);
-            if (distance < 1) return;
+            if (distance < 1) {
+                if (index === 1) {
+                    projectArrived = true;
+                    projectReadyAt = performance.now() + timing.projectArrivalTime;
+                }
+                return;
+            }
+            if (index < 2) shutdownUnlocked = false;
             const direction = Math.sign(target - start);
             const gestureSpeed = Math.abs(scrollVelocity);
             const continuingGesture = Math.sign(scrollVelocity) === direction;
@@ -266,14 +281,21 @@
                 const travelled = Math.min(distance, (now - started) * speed);
                 window.scrollTo({ top: start + direction * travelled, behavior: 'instant' });
                 if (travelled < distance) snapFrame = requestAnimationFrame(step);
-                else { snapping = false; snapFrame = 0; }
+                else {
+                    snapping = false;
+                    snapFrame = 0;
+                    projectArrived = index === 1;
+                    if (projectArrived) projectReadyAt = performance.now() + timing.projectArrivalTime;
+                }
             }
             snapFrame = requestAnimationFrame(step);
         }
         function settleScene() {
             if (touching || snapping) return;
+            if (gestureFloor === 1) { snapTo(1); return; }
             const [home, projectStop, shutdownStop] = layout.stops;
             const afterProjects = window.scrollY > projectStop + 2;
+            if (afterProjects && !shutdownUnlocked) { snapTo(1); return; }
             const from = afterProjects ? projectStop : home + layout.overflow;
             const to = afterProjects ? shutdownStop : projectStop;
             const progress = (window.scrollY - from) / (to - from);
@@ -286,8 +308,32 @@
             if (!snapping && !touching) settleTimer = setTimeout(settleScene, timing.settleDelay);
         }
         window.addEventListener('scroll', () => {
-            const position = window.scrollY;
             const now = performance.now();
+            const position = window.scrollY;
+            if (!snapping && previousScroll > layout.stops[1] + 2 && position <= layout.stops[1]) gestureFloor = 1;
+            if (!snapping && gestureFloor === 1 && position < layout.stops[1]) {
+                window.scrollTo({ top: layout.stops[1], behavior: 'instant' });
+                shutdownUnlocked = false;
+                projectArrived = true;
+                projectReadyAt = now + timing.projectArrivalTime;
+                previousScroll = layout.stops[1];
+                previousScrollTime = now;
+                if (!queued) { queued = true; requestAnimationFrame(renderScene); }
+                return;
+            }
+            if (!snapping && !shutdownUnlocked && position > layout.stops[1] + 1) {
+                projectReadyAt = now + timing.projectArrivalTime;
+                wheelStartedAtProjects = false;
+                window.scrollTo({ top: layout.stops[1], behavior: 'instant' });
+                projectArrived = true;
+                projectReadyAt = now + timing.projectArrivalTime;
+                previousScroll = layout.stops[1];
+                previousScrollTime = now;
+                scrollVelocity = 0;
+                scrollDirection = 1;
+                if (!queued) { queued = true; requestAnimationFrame(renderScene); }
+                return;
+            }
             const delta = position - previousScroll;
             const elapsed = now - previousScrollTime;
             if (!snapping && Math.abs(delta) > 0.5 && elapsed > 0) {
@@ -296,20 +342,94 @@
                 scrollVelocity = elapsed <= 100 && Math.sign(scrollVelocity) === Math.sign(velocity)
                     ? scrollVelocity * 0.35 + velocity * 0.65
                     : velocity;
+                if (delta < 0 && previousScroll > layout.stops[1] && position <= layout.stops[1]) {
+                    shutdownUnlocked = false;
+                }
+            }
+            if (!snapping && !projectArrived && Math.abs(position - layout.stops[1]) < 2) {
+                projectArrived = true;
+                projectReadyAt = now + timing.projectArrivalTime;
+                wheelStartedAtProjects = false;
             }
             previousScroll = position;
             previousScrollTime = now;
             if (!queued) { queued = true; requestAnimationFrame(renderScene); }
             scheduleSettle();
         }, { passive: true });
-        window.addEventListener('touchstart', () => { touching = true; scrollVelocity = 0; cancelSnap(); focusTarget = null; }, { passive: true });
-        window.addEventListener('wheel', () => { scrollVelocity = 0; cancelSnap(); focusTarget = null; }, { passive: true });
+        function atProjectStop() {
+            return projectArrived && Math.abs(window.scrollY - layout.stops[1]) < 2
+                && projects.scrollTop + projects.clientHeight >= projects.scrollHeight - 2;
+        }
+        function unlockShutdown() {
+            if (!atProjectStop() || shutdownUnlocked) return false;
+            shutdownUnlocked = true;
+            touching = false;
+            scrollVelocity = timing.snapDefaultSpeed;
+            snapTo(2);
+            return true;
+        }
+        window.addEventListener('touchstart', event => {
+            touching = true;
+            gestureFloor = window.scrollY > layout.stops[1] + 2 ? 1 : 0;
+            scrollVelocity = 0;
+            cancelSnap();
+            focusTarget = null;
+            const y = event.touches[0].clientY;
+            touchStartY = y;
+            touchSamples = [{ y, time: performance.now() }];
+            touchTravel = 0;
+            touchStartedAtProjects = atProjectStop() && !shutdownUnlocked
+                && performance.now() >= projectReadyAt;
+        }, { passive: true });
+        window.addEventListener('touchmove', event => {
+            if (!touchStartedAtProjects) return;
+            const y = event.touches[0].clientY;
+            if (y < touchStartY) event.preventDefault();
+            const now = performance.now();
+            touchSamples.push({ y, time: now });
+            touchTravel = Math.max(touchTravel, touchStartY - y);
+        }, { passive: false });
+        window.addEventListener('wheel', event => {
+            const now = performance.now();
+            const newGesture = now > wheelUntil;
+            wheelUntil = now + timing.eggGestureGap;
+            if (newGesture) gestureFloor = window.scrollY > layout.stops[1] + 2 ? 1 : 0;
+            scrollVelocity = 0;
+            cancelSnap();
+            focusTarget = null;
+            if (!atProjectStop() || shutdownUnlocked || event.deltaY <= 0) return;
+            event.preventDefault();
+            if (now < projectReadyAt) { wheelStartedAtProjects = false; return; }
+            if (newGesture) wheelStartedAtProjects = true;
+            if (!wheelStartedAtProjects) return;
+            const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+            if (event.deltaY * unit >= timing.eggWheelDelta) unlockShutdown();
+        }, { passive: false });
         window.addEventListener('keydown', event => {
             if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) cancelSnap();
+            if (atProjectStop() && !shutdownUnlocked && ['ArrowDown', 'PageDown', 'End', ' '].includes(event.key)) event.preventDefault();
         });
-        function finishTouch() { touching = false; scheduleSettle(); }
+        function finishTouch() {
+            const now = performance.now();
+            const last = touchSamples.at(-1);
+            const recent = touchSamples.filter(sample => now - sample.time <= 80);
+            const first = recent[0];
+            const elapsed = last && first ? last.time - first.time : 0;
+            const touchVelocity = last && first && now - last.time <= 80 && elapsed > 0
+                ? (first.y - last.y) / elapsed : 0;
+            if (touchStartedAtProjects
+                && touchTravel >= timing.eggSwipeDistance && touchVelocity >= timing.eggSwipeVelocity) {
+                unlockShutdown();
+            }
+            touching = false;
+            touchStartedAtProjects = false;
+            scheduleSettle();
+        }
         window.addEventListener('touchend', finishTouch, { passive: true });
-        window.addEventListener('touchcancel', finishTouch, { passive: true });
+        window.addEventListener('touchcancel', () => {
+            touching = touchStartedAtProjects = false;
+            scheduleSettle();
+        }, { passive: true });
         trigger.addEventListener('click', () => {
             focusTarget = { scene: 'projects', element: projectTitle };
             snapTo(1);
