@@ -25,9 +25,9 @@
     <meta name="description"
         content="Jesse Brizzi's personal website. Platform Tech Lead at Two Sigma, working on agentic AI, LLM tooling, and developer experience.">
     <title>Jesse Brizzi</title>
-    <link rel="stylesheet" href="style.css?v=20261024-direction-snap">
+    <link rel="stylesheet" href="style.css?v=20261024-scroll-animation">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="preload" href="style.css?v=20261024-direction-snap" as="style">
+    <link rel="preload" href="style.css?v=20261024-scroll-animation" as="style">
     <link rel="preload" href="images/optimized/JesseLogo.svg" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -157,12 +157,8 @@
             queued = false;
             const [home, projectStop, shutdownStop] = layout.stops;
             const position = window.scrollY;
-            let progress = clamp((position - home) / (projectStop - home));
-            let powerProgress = clamp((position - projectStop) / (shutdownStop - projectStop));
-            if (reducedMotion.matches) {
-                progress = progress >= 0.5 ? 1 : 0;
-                powerProgress = powerProgress >= 0.5 ? 1 : 0;
-            }
+            const progress = clamp((position - home) / (projectStop - home));
+            const powerProgress = clamp((position - projectStop) / (shutdownStop - projectStop));
             const progressKey = `${progress}:${powerProgress}`;
             if (previousProgress === progressKey) return;
             previousProgress = progressKey;
@@ -248,7 +244,7 @@
             const progress = (window.scrollY - from) / (to - from);
             if (progress <= 0.002 || progress >= 0.998) return;
             const threshold = scrollDirection > 0 ? timing.forwardSnap : scrollDirection < 0 ? timing.reverseSnap : 0.5;
-            window.scrollTo({ top: progress >= threshold ? to : afterProjects ? from : home, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+            window.scrollTo({ top: progress >= threshold ? to : afterProjects ? from : home, behavior: 'smooth' });
         }
         function scheduleSettle() {
             clearTimeout(settleTimer);
@@ -268,11 +264,11 @@
         window.addEventListener('touchcancel', finishTouch, { passive: true });
         trigger.addEventListener('click', () => {
             focusTarget = { scene: 'projects', element: projectTitle };
-            window.scrollTo({ top: layout.stops[1], behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+            window.scrollTo({ top: layout.stops[1], behavior: 'smooth' });
         });
         back.addEventListener('click', () => {
             focusTarget = { scene: 'intro', element: trigger };
-            window.scrollTo({ top: layout.stops[0], behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+            window.scrollTo({ top: layout.stops[0], behavior: 'smooth' });
         });
         window.addEventListener('resize', measureScene);
         reducedMotion.addEventListener('change', measureScene);
