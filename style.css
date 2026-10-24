@@ -510,10 +510,10 @@ button:focus-visible,
 }
 
 .shutdown-message {
-    color: #ed7014;
+    color: var(--accent);
     font: 32px/1.25 "Shutdown VGA", monospace;
     text-align: center;
-    text-shadow: 0 0 2px #ed701459, 0 0 7px #ed701426;
+    text-shadow: 0 0 2px #ffb86c59, 0 0 7px #ffb86c26;
     -webkit-font-smoothing: none;
     animation: crt-flicker 5.5s steps(1, end) infinite paused;
 }
