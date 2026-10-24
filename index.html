@@ -138,13 +138,13 @@
         const ease = value => value * value * (3 - 2 * value);
         const phase = (progress, [start, duration], stagger = 0) => ease(clamp((progress - start - stagger) / duration));
         const layout = { stops: [0, 0, 0], overflow: 0 };
-        let activeScene, revealVisible, shutdownRevealed, shutdownVisible = false, flowMode = false;
+        let activeScene, revealVisible, shutdownRevealed, shutdownVisible = false;
         let previousProgress = '', queued = false, settleTimer, touching = false;
         let previousScroll = window.scrollY, scrollDirection = 0, focusTarget = null;
         document.querySelector('.project-header > span').textContent = `01 — ${String(rows.length).padStart(2, '0')}`;
 
         function updateFlicker() {
-            const running = shutdownVisible && (flowMode || reducedMotion.matches || shutdownRevealed) && !document.hidden;
+            const running = shutdownVisible && shutdownRevealed && !document.hidden;
             if (shutdown.classList.contains('crt-active') !== running) shutdown.classList.toggle('crt-active', running);
         }
         new IntersectionObserver(([entry]) => {
@@ -155,11 +155,14 @@
 
         function renderScene() {
             queued = false;
-            if (flowMode) return;
             const [home, projectStop, shutdownStop] = layout.stops;
             const position = window.scrollY;
-            const progress = clamp((position - home - layout.overflow) / (projectStop - home - layout.overflow));
-            const powerProgress = clamp((position - projectStop) / (shutdownStop - projectStop));
+            let progress = clamp((position - home) / (projectStop - home));
+            let powerProgress = clamp((position - projectStop) / (shutdownStop - projectStop));
+            if (reducedMotion.matches) {
+                progress = progress >= 0.5 ? 1 : 0;
+                powerProgress = powerProgress >= 0.5 ? 1 : 0;
+            }
             const progressKey = `${progress}:${powerProgress}`;
             if (previousProgress === progressKey) return;
             previousProgress = progressKey;
@@ -190,8 +193,10 @@
             const showReveal = progress > 0.001;
             if (showReveal !== revealVisible) {
                 revealVisible = showReveal;
-                projects.style.visibility = blinds.style.visibility = showReveal ? 'visible' : 'hidden';
+                blinds.style.visibility = showReveal ? 'visible' : 'hidden';
             }
+            intro.style.visibility = progress < timing.introFocus ? 'visible' : 'hidden';
+            projects.style.visibility = progress >= timing.introFocus && powerProgress < timing.shutdown[0] ? 'visible' : 'hidden';
             const showShutdown = powerProgress > timing.shutdown[0];
             if (showShutdown !== shutdownRevealed) {
                 shutdownRevealed = showShutdown;
@@ -222,28 +227,18 @@
             previousProgress = '';
             activeScene = revealVisible = shutdownRevealed = undefined;
             const viewport = window.innerHeight;
-            const introHeight = intro.offsetHeight;
-            flowMode = reducedMotion.matches;
-            document.documentElement.classList.toggle('scroll-reveal', !flowMode);
-            if (flowMode) {
-                [story, stage, intro, projects, shutdown, projectsInner, powerLine, blinds, ...rows, ...slats].forEach(element => element.removeAttribute('style'));
-                intro.inert = projects.inert = shutdown.inert = false;
-                updateFlicker();
-                return;
-            }
+            document.documentElement.classList.add('scroll-reveal');
             const origin = window.scrollY + story.getBoundingClientRect().top;
-            const height = Math.max(viewport, introHeight);
-            const overflow = height - viewport;
-            layout.overflow = overflow;
-            layout.stops = [origin, origin + overflow + viewport * timing.projectScreens, origin + overflow + viewport * (timing.projectScreens + 1)];
-            stage.style.height = `${height}px`;
-            stage.style.top = `${-overflow}px`;
-            projects.style.top = shutdown.style.top = `${overflow}px`;
-            story.style.height = `${height + layout.stops[2] - origin - overflow}px`;
+            layout.overflow = 0;
+            layout.stops = [origin, origin + viewport * timing.projectScreens, origin + viewport * (timing.projectScreens + 1)];
+            stage.style.height = `${viewport}px`;
+            stage.style.top = '0px';
+            projects.style.top = shutdown.style.top = '0px';
+            story.style.height = `${viewport + layout.stops[2] - origin}px`;
             renderScene();
         }
         function settleScene() {
-            if (flowMode || touching) return;
+            if (touching) return;
             const [home, projectStop, shutdownStop] = layout.stops;
             const afterProjects = window.scrollY > projectStop + 2;
             const from = afterProjects ? projectStop : home + layout.overflow;
@@ -251,11 +246,11 @@
             const progress = (window.scrollY - from) / (to - from);
             if (progress <= 0.002 || progress >= 0.998) return;
             const threshold = scrollDirection > 0 ? timing.forwardSnap : scrollDirection < 0 ? timing.reverseSnap : 0.5;
-            window.scrollTo({ top: progress >= threshold ? to : afterProjects ? from : home, behavior: 'smooth' });
+            window.scrollTo({ top: progress >= threshold ? to : afterProjects ? from : home, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
         }
         function scheduleSettle() {
             clearTimeout(settleTimer);
-            if (!flowMode) settleTimer = setTimeout(settleScene, timing.settleDelay);
+            settleTimer = setTimeout(settleScene, timing.settleDelay);
         }
         window.addEventListener('scroll', () => {
             const position = window.scrollY;
@@ -270,16 +265,12 @@
         window.addEventListener('touchend', finishTouch, { passive: true });
         window.addEventListener('touchcancel', finishTouch, { passive: true });
         trigger.addEventListener('click', () => {
-            if (flowMode) { projects.scrollIntoView(); projectTitle.focus({ preventScroll: true }); }
-            else {
-                focusTarget = { scene: 'projects', element: projectTitle };
-                window.scrollTo({ top: layout.stops[1], behavior: 'smooth' });
-            }
+            focusTarget = { scene: 'projects', element: projectTitle };
+            window.scrollTo({ top: layout.stops[1], behavior: reducedMotion.matches ? 'instant' : 'smooth' });
         });
         back.addEventListener('click', () => {
-            window.scrollTo({ top: layout.stops[0], behavior: flowMode ? 'instant' : 'smooth' });
-            if (flowMode) trigger.focus({ preventScroll: true });
-            else focusTarget = { scene: 'intro', element: trigger };
+            focusTarget = { scene: 'intro', element: trigger };
+            window.scrollTo({ top: layout.stops[0], behavior: reducedMotion.matches ? 'instant' : 'smooth' });
         });
         window.addEventListener('resize', measureScene);
         reducedMotion.addEventListener('change', measureScene);

@@ -420,7 +420,7 @@ button:focus-visible,
 
 .scroll-reveal .scroll-stage {
     position: sticky;
-    overflow: clip;
+    overflow: hidden;
 }
 
 .scroll-reveal .intro {
@@ -651,4 +651,19 @@ button:focus-visible,
     .project-name { font-size: clamp(1.6rem, 6vw, 2.5rem); }
     .project-description { padding-bottom: 0.8rem; }
     .project-details { padding-block: 1rem; }
+}
+
+/* Keep one section in the viewport, including with reduced motion on iOS. */
+.scroll-reveal .intro {
+    position: absolute;
+    inset: 0;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    justify-content: safe center;
+}
+.scroll-reveal .intro,
+.scroll-reveal .project-scene,
+.scroll-reveal .shutdown-screen {
+    -webkit-overflow-scrolling: touch;
 }
