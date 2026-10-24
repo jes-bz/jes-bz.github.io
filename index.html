@@ -25,9 +25,9 @@
     <meta name="description"
         content="Jesse Brizzi's personal website. Platform Tech Lead at Two Sigma, working on agentic AI, LLM tooling, and developer experience.">
     <title>Jesse Brizzi</title>
-    <link rel="stylesheet" href="style.css?v=20261024-single-stage">
+    <link rel="stylesheet" href="style.css?v=20261024-phone-snap">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="preload" href="style.css?v=20261024-single-stage" as="style">
+    <link rel="preload" href="style.css?v=20261024-phone-snap" as="style">
     <link rel="preload" href="images/optimized/JesseLogo.svg" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -126,6 +126,7 @@
         const slats = [...blinds.children];
         const rows = [...document.querySelectorAll('.project-list li')];
         const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+        const touchPointer = matchMedia('(pointer: coarse)');
         const timing = {
             introFade: [0, 0.25], blinds: [0.16, 0.38], slatStagger: 0.035,
             rows: [0.52, 0.18], rowStagger: 0.09, details: [0.76, 0.2],
@@ -235,6 +236,8 @@
             stage.style.top = '0px';
             projects.style.top = shutdown.style.top = '0px';
             story.style.height = `${viewport + layout.stops[2] - origin}px`;
+            intro.classList.toggle('has-overflow', intro.scrollHeight > viewport + 1);
+            projects.classList.toggle('has-overflow', projectsInner.scrollHeight > viewport - 64);
             renderScene();
         }
         function settleScene() {
@@ -245,7 +248,9 @@
             const to = afterProjects ? shutdownStop : projectStop;
             const progress = (window.scrollY - from) / (to - from);
             if (progress <= 0.002 || progress >= 0.998) return;
-            const threshold = scrollDirection > 0 ? timing.forwardSnap : scrollDirection < 0 ? timing.reverseSnap : 0.5;
+            const threshold = touchPointer.matches
+                ? (scrollDirection > 0 ? 0.01 : 0.99)
+                : scrollDirection > 0 ? timing.forwardSnap : scrollDirection < 0 ? timing.reverseSnap : 0.5;
             window.scrollTo({ top: progress >= threshold ? to : afterProjects ? from : home, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
         }
         function scheduleSettle() {
