@@ -310,7 +310,7 @@
         window.addEventListener('scroll', () => {
             const now = performance.now();
             const position = window.scrollY;
-            if (!snapping && previousScroll > layout.stops[1] + 2 && position <= layout.stops[1]) gestureFloor = 1;
+            if (!snapping && shutdownUnlocked && previousScroll > layout.stops[1] + 2 && position <= layout.stops[1]) gestureFloor = 1;
             if (!snapping && gestureFloor === 1 && position < layout.stops[1]) {
                 window.scrollTo({ top: layout.stops[1], behavior: 'instant' });
                 shutdownUnlocked = false;
@@ -393,7 +393,9 @@
             const now = performance.now();
             const newGesture = now > wheelUntil;
             wheelUntil = now + timing.eggGestureGap;
-            if (newGesture) gestureFloor = window.scrollY > layout.stops[1] + 2 ? 1 : 0;
+            if (newGesture || (event.deltaY < 0 && window.scrollY <= layout.stops[1] + 2 && !shutdownUnlocked)) {
+                gestureFloor = window.scrollY > layout.stops[1] + 2 ? 1 : 0;
+            }
             scrollVelocity = 0;
             cancelSnap();
             focusTarget = null;
@@ -406,7 +408,10 @@
             if (event.deltaY * unit >= timing.eggWheelDelta) unlockShutdown();
         }, { passive: false });
         window.addEventListener('keydown', event => {
-            if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) cancelSnap();
+            if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) {
+                gestureFloor = window.scrollY > layout.stops[1] + 2 ? 1 : 0;
+                cancelSnap();
+            }
             if (atProjectStop() && !shutdownUnlocked && ['ArrowDown', 'PageDown', 'End', ' '].includes(event.key)) event.preventDefault();
         });
         function finishTouch() {
