@@ -25,9 +25,9 @@
     <meta name="description"
         content="Jesse Brizzi's personal website. Platform Tech Lead at Two Sigma, working on agentic AI, LLM tooling, and developer experience.">
     <title>Jesse Brizzi</title>
-    <link rel="stylesheet" href="style.css?v=20261024-button-scenes">
+    <link rel="stylesheet" href="style.css?v=20261024-bottom-hold">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="preload" href="style.css?v=20261024-button-scenes" as="style">
+    <link rel="preload" href="style.css?v=20261024-bottom-hold" as="style">
     <link rel="preload" href="images/optimized/JesseLogo.svg" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -82,12 +82,14 @@
                 <li><a href="https://cattho.de" target="_blank" rel="noopener noreferrer"><span class="project-number">01</span><span class="project-name">Catthode</span><span class="project-arrow" aria-hidden="true">↗</span></a><p id="catthode-description" class="project-description">A warm, dark color theme for your favorite apps.</p></li>
                 <li><a href="https://jes.bz/life-cal/" target="_blank" rel="noopener noreferrer"><span class="project-number">02</span><span class="project-name">Life Calendar</span><span class="project-arrow" aria-hidden="true">↗</span></a><p id="calendar-description" class="project-description">Your life in weeks, as a wallpaper.</p></li>
             </ul>
-            <div class="project-details"><button class="palette-dots" type="button" aria-label="Color palette"><i></i><i></i><i></i><i></i><i></i><i></i></button><div class="week-dots" aria-hidden="true"></div></div>
+            <div class="project-details"><div class="palette-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="week-dots" aria-hidden="true"></div></div>
             <button class="projects-back" type="button">↑ Back to Jesse</button>
         </div>
+        <button class="empty-hold" type="button" aria-label="Hold to reveal hidden screen"></button>
     </section>
     <section class="shutdown-screen" aria-label="End of page" tabindex="-1">
         <div class="shutdown-text"><p class="shutdown-message">It's now safe to turn off<br>your computer.</p></div>
+        <button class="empty-hold" type="button" aria-label="Hold to return to projects"></button>
     </section>
     <div class="reveal-blinds" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     </div>
@@ -230,24 +232,34 @@
         }
         trigger.addEventListener('click', () => navigate(1));
         back.addEventListener('click', () => navigate(0));
-        const palette = document.querySelector('.palette-dots');
         function cancelHold() { clearTimeout(holdTimer); }
-        palette.addEventListener('pointerdown', event => {
-            if (event.button !== 0 || destination !== 1 || sceneFrame) return;
-            palette.setPointerCapture(event.pointerId);
-            holdTimer = setTimeout(() => navigate(2), 1000);
-        });
-        ['pointerup', 'pointercancel', 'lostpointercapture', 'pointerleave'].forEach(type => palette.addEventListener(type, cancelHold));
-        palette.addEventListener('keydown', event => {
-            if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) {
-                event.preventDefault();
-                holdTimer = setTimeout(() => navigate(2), 1000);
+        document.querySelectorAll('.empty-hold').forEach(area => {
+            const target = area.closest('#projects') ? 2 : 1;
+            let startX, startY;
+            function beginHold() {
+                cancelHold();
+                if (!sceneFrame) holdTimer = setTimeout(() => navigate(target), 1000);
             }
+            area.addEventListener('pointerdown', event => {
+                if (event.button !== 0 || !event.isPrimary) return;
+                startX = event.clientX;
+                startY = event.clientY;
+                area.setPointerCapture(event.pointerId);
+                beginHold();
+            });
+            area.addEventListener('pointermove', event => {
+                if (Math.hypot(event.clientX - startX, event.clientY - startY) > 12) cancelHold();
+            });
+            ['pointerup', 'pointercancel', 'lostpointercapture', 'pointerleave', 'blur'].forEach(type => area.addEventListener(type, cancelHold));
+            area.addEventListener('keydown', event => {
+                if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) {
+                    event.preventDefault();
+                    beginHold();
+                }
+            });
+            area.addEventListener('keyup', cancelHold);
+            area.addEventListener('contextmenu', event => event.preventDefault());
         });
-        palette.addEventListener('keyup', cancelHold);
-        palette.addEventListener('blur', cancelHold);
-        palette.addEventListener('contextmenu', event => event.preventDefault());
-        shutdown.addEventListener('click', () => navigate(1));
         window.addEventListener('keydown', event => {
             if (event.key === 'Escape') navigate(destination === 2 ? 1 : 0);
         });

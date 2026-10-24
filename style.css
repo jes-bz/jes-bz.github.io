@@ -679,14 +679,25 @@ html.scroll-reveal, .scroll-reveal body { height: 100%; overflow: hidden; }
     overflow-y: auto;
     overscroll-behavior-y: contain;
 }
-button.palette-dots {
+/* Empty space below the content is the same hidden hold target in both scenes. */
+.scroll-reveal .project-scene, .scroll-reveal .shutdown-screen {
+    grid-template-rows: minmax(0, 1fr) auto minmax(64px, 1fr);
+    align-items: stretch;
+}
+.projects-inner, .shutdown-text { grid-row: 2; }
+.empty-hold {
+    grid-row: 3;
+    width: 100%;
+    min-height: 64px;
+    align-self: stretch;
     border: 0;
+    padding: 0;
     background: transparent;
-    padding: 12px 0;
-    min-height: 44px;
-    cursor: pointer;
-    touch-action: none;
+    color: inherit;
+    cursor: default;
+    touch-action: pan-y;
     -webkit-touch-callout: none;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
-button.palette-dots:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+.empty-hold:focus-visible { outline: 1px dashed var(--accent); outline-offset: -8px; }
