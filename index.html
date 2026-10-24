@@ -25,9 +25,9 @@
     <meta name="description"
         content="Jesse Brizzi's personal website. Platform Tech Lead at Two Sigma, working on agentic AI, LLM tooling, and developer experience.">
     <title>Jesse Brizzi</title>
-    <link rel="stylesheet" href="style.css?v=20261024-phone-snap">
+    <link rel="stylesheet" href="style.css?v=20261024-direction-snap">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="preload" href="style.css?v=20261024-phone-snap" as="style">
+    <link rel="preload" href="style.css?v=20261024-direction-snap" as="style">
     <link rel="preload" href="images/optimized/JesseLogo.svg" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -126,14 +126,13 @@
         const slats = [...blinds.children];
         const rows = [...document.querySelectorAll('.project-list li')];
         const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-        const touchPointer = matchMedia('(pointer: coarse)');
         const timing = {
             introFade: [0, 0.25], blinds: [0.16, 0.38], slatStagger: 0.035,
             rows: [0.52, 0.18], rowStagger: 0.09, details: [0.76, 0.2],
             collapse: [0, 0.48], listFade: [0.46, 0.06],
             linePeak: 0.5, lineWidth: 0.16, lineShrink: [0.5, 0.18],
             introFocus: 0.25, shutdown: [0.7, 0.25], projectFocus: 0.52,
-            projectScreens: 1.35, settleDelay: 200, forwardSnap: 0.35, reverseSnap: 0.65
+            projectScreens: 1.35, settleDelay: 200, forwardSnap: 0.01, reverseSnap: 0.99
         };
         const clamp = value => Math.max(0, Math.min(1, value));
         const ease = value => value * value * (3 - 2 * value);
@@ -248,9 +247,7 @@
             const to = afterProjects ? shutdownStop : projectStop;
             const progress = (window.scrollY - from) / (to - from);
             if (progress <= 0.002 || progress >= 0.998) return;
-            const threshold = touchPointer.matches
-                ? (scrollDirection > 0 ? 0.01 : 0.99)
-                : scrollDirection > 0 ? timing.forwardSnap : scrollDirection < 0 ? timing.reverseSnap : 0.5;
+            const threshold = scrollDirection > 0 ? timing.forwardSnap : scrollDirection < 0 ? timing.reverseSnap : 0.5;
             window.scrollTo({ top: progress >= threshold ? to : afterProjects ? from : home, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
         }
         function scheduleSettle() {
