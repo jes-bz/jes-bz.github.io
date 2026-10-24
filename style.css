@@ -695,8 +695,9 @@ html.scroll-reveal, .scroll-reveal body { height: 100%; overflow: hidden; }
     background: transparent;
     color: inherit;
     cursor: default;
-    touch-action: pan-y;
+    touch-action: none;
     -webkit-touch-callout: none;
+    -webkit-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 }

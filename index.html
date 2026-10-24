@@ -7,9 +7,9 @@
     <meta name="description"
         content="Jesse Brizzi's personal website. Platform Tech Lead at Two Sigma, working on agentic AI, LLM tooling, and developer experience.">
     <title>Jesse Brizzi</title>
-    <link rel="stylesheet" href="style.css?v=20261024-bottom-hold">
+    <link rel="stylesheet" href="style.css?v=20261024-touch-hold">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="preload" href="style.css?v=20261024-bottom-hold" as="style">
+    <link rel="preload" href="style.css?v=20261024-touch-hold" as="style">
     <link rel="preload" href="images/optimized/JesseLogo.svg" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -223,12 +223,17 @@
                 if (!sceneFrame) holdTimer = setTimeout(() => navigate(target), 1000);
             }
             area.addEventListener('pointerdown', event => {
-                if (event.button !== 0 || !event.isPrimary) return;
+                if (event.button !== 0 || !event.isPrimary || sceneFrame) return;
+                event.preventDefault();
                 startX = event.clientX;
                 startY = event.clientY;
                 area.setPointerCapture(event.pointerId);
                 beginHold();
             });
+            // Safari can start native selection before a long pointer hold completes.
+            area.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
+            area.addEventListener('selectstart', event => event.preventDefault());
+            area.addEventListener('dragstart', event => event.preventDefault());
             area.addEventListener('pointermove', event => {
                 if (Math.hypot(event.clientX - startX, event.clientY - startY) > 12) cancelHold();
             });
@@ -242,6 +247,8 @@
             area.addEventListener('keyup', cancelHold);
             area.addEventListener('contextmenu', event => event.preventDefault());
         });
+        window.addEventListener('blur', cancelHold);
+        document.addEventListener('visibilitychange', cancelHold);
         window.addEventListener('keydown', event => {
             if (event.key === 'Escape') navigate(destination === 2 ? 1 : 0);
         });
