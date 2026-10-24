@@ -41,12 +41,11 @@
         <div class="container">
             <img src="images/optimized/JesseLogo.svg" alt="Jesse Brizzi Logo" class="logo" width="300" height="300" fetchpriority="high">
             <h1>Jesse Brizzi</h1>
-            <div class="role">Machine Learning Engineer && Software Engineer</div>
-            <div class="specialties">Agentic AI • LLM Tooling • Machine Learning • Computer Vision • Backend Engineering
-            </div>
+            <div class="role"><span>Machine Learning Engineer</span> <span>&amp;&amp; Software Engineer</span></div>
+            <div class="specialties"><span>Agentic AI</span> <span>• LLM Tooling</span> <span>• Machine Learning</span> <span>• Computer Vision</span> <span>• Backend Engineering</span></div>
             <div class="current-position">
-                Platform Tech Lead, AI Developer Experience @
-                <a href="https://www.twosigma.com/" target="_blank" rel="noopener noreferrer">Two Sigma</a>
+                <span>Platform Tech Lead,</span> <span>AI Developer Experience</span> <span class="employer">@
+                <a href="https://www.twosigma.com/" target="_blank" rel="noopener noreferrer">Two Sigma</a></span>
             </div>
             <div class="email">{ hello } @ jes.bz</div>
             <div class="social-links">
@@ -224,8 +223,7 @@
             activeScene = revealVisible = shutdownRevealed = undefined;
             const viewport = window.innerHeight;
             const introHeight = intro.offsetHeight;
-            const projectHeight = projectsInner.scrollHeight;
-            flowMode = reducedMotion.matches || introHeight > viewport * 1.5 || projectHeight > viewport - 48;
+            flowMode = reducedMotion.matches;
             document.documentElement.classList.toggle('scroll-reveal', !flowMode);
             if (flowMode) {
                 [story, stage, intro, projects, shutdown, projectsInner, powerLine, blinds, ...rows, ...slats].forEach(element => element.removeAttribute('style'));

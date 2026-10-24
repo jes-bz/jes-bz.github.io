@@ -3,7 +3,8 @@
     --text: #e8e8e8;
     --wheat: #fae2c8;
     --clay: #f08d49;
-    --accent: #ffb86c;
+    --accent: #ff9e3b;
+    --blue: #9cd9e6;
     --secondary-text: #b3b3b3;
     --fs-xs: 0.78rem;
     --fs-sm: 0.95rem;
@@ -102,14 +103,15 @@ h1 {
 
 .current-position a {
     padding-bottom: 1px;
-    color: var(--text);
+    color: var(--blue);
     text-decoration: none;
-    border-bottom: 1px solid var(--accent);
+    border-bottom: 1px solid currentColor;
     transition: color 0.2s ease, border-color 0.2s ease;
 }
 
 .current-position a:hover {
-    color: var(--accent);
+    color: var(--blue);
+    border-bottom-width: 2px;
 }
 
 .email {
@@ -385,7 +387,7 @@ button:focus-visible,
 }
 
 .palette-dots i:nth-child(2) { background: #d9b98c; }
-.palette-dots i:nth-child(3) { background: #ffb86c; }
+.palette-dots i:nth-child(3) { background: var(--accent); }
 .palette-dots i:nth-child(4) { background: #f08d49; }
 .palette-dots i:nth-child(5) { background: #aee6d6; }
 .palette-dots i:nth-child(6) { background: #eba4be; }
@@ -475,7 +477,7 @@ button:focus-visible,
     opacity: 0;
     pointer-events: none;
     background: var(--wheat);
-    box-shadow: 0 0 8px #ffb86c66;
+    box-shadow: 0 0 8px #ff9e3b66;
 }
 
 @font-face {
@@ -513,7 +515,7 @@ button:focus-visible,
     color: var(--accent);
     font: 32px/1.25 "Shutdown VGA", monospace;
     text-align: center;
-    text-shadow: 0 0 2px #ffb86c59, 0 0 7px #ffb86c26;
+    text-shadow: 0 0 2px #ff9e3b59, 0 0 7px #ff9e3b26;
     -webkit-font-smoothing: none;
     animation: crt-flicker 5.5s steps(1, end) infinite paused;
 }
@@ -632,4 +634,21 @@ button:focus-visible,
     .video-background {
         display: none;
     }
+}
+
+/* Wrap between complete ideas; separators travel with the following phrase. */
+.role span, .specialties span, .current-position span, .current-position a {
+    display: inline-block;
+    white-space: nowrap;
+}
+.scroll-reveal .project-scene {
+    overflow-y: auto;
+    align-items: safe center;
+}
+@media (max-height: 600px) {
+    .project-header { padding-bottom: 1rem; }
+    .project-list a { padding-block: 1rem; }
+    .project-name { font-size: clamp(1.6rem, 6vw, 2.5rem); }
+    .project-description { padding-bottom: 0.8rem; }
+    .project-details { padding-block: 1rem; }
 }
