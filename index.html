@@ -97,20 +97,20 @@
     <div class="power-line" aria-hidden="true"></div>
     <div id="social-video-1" class="video-background" aria-hidden="true">
         <video loop muted playsinline preload="none">
-            <source src="vids/work_720p.webm" type="video/webm">
-            <source src="vids/work_720p.mp4" type="video/mp4">
+            <source data-src="vids/work_720p.mp4" type="video/mp4">
+            <source data-src="vids/work_720p.webm" type="video/webm">
         </video>
     </div>
     <div id="social-video-2" class="video-background" aria-hidden="true">
         <video loop muted playsinline preload="none">
-            <source src="vids/fly_720p.webm" type="video/webm">
-            <source src="vids/fly_720p.mp4" type="video/mp4">
+            <source data-src="vids/fly_720p.mp4" type="video/mp4">
+            <source data-src="vids/fly_720p.webm" type="video/webm">
         </video>
     </div>
     <div id="social-video-3" class="video-background" aria-hidden="true">
         <video loop muted playsinline preload="none">
-            <source src="vids/code_720p.webm" type="video/webm">
-            <source src="vids/code_720p.mp4" type="video/mp4">
+            <source data-src="vids/code_720p.mp4" type="video/mp4">
+            <source data-src="vids/code_720p.webm" type="video/webm">
         </video>
     </div>
     <script>
@@ -270,15 +270,20 @@
             const motion = reducedMotion;
             const pointer = window.matchMedia('(hover: hover) and (pointer: fine)');
             const links = document.querySelectorAll('.social-links a');
-            let activeVideo = null;
+            let activeVideo = null, hoverTimer, videoRequest = 0;
 
             function stopVideos() {
+                clearTimeout(hoverTimer);
+                videoRequest++;
                 activeVideo = null;
                 document.querySelectorAll('.video-background').forEach(background => {
                     background.classList.remove('is-active');
                     const video = background.querySelector('video');
                     video.pause();
-                    if (video.readyState > 0) video.currentTime = 0;
+                    if (video.querySelector('source[src]')) {
+                        video.querySelectorAll('source').forEach(source => source.removeAttribute('src'));
+                        video.load();
+                    }
                 });
             }
 
@@ -289,16 +294,24 @@
                 async function startVideo() {
                     stopVideos();
                     if (motion.matches || !pointer.matches || document.hidden) return;
+                    if (navigator.connection?.saveData) return;
                     activeVideo = video;
+                    const request = videoRequest;
+                    video.querySelectorAll('source').forEach(source => { source.src = source.dataset.src; });
+                    video.load();
                     video.playbackRate = 0.5;
                     try {
                         await video.play();
-                        if (activeVideo === video) background.classList.add('is-active');
-                        else video.pause();
+                        if (activeVideo === video && request === videoRequest) background.classList.add('is-active');
+                        else if (activeVideo !== video) video.pause();
                     } catch { /* Leave the static background when playback is unavailable. */ }
                 }
-                link.addEventListener('mouseenter', startVideo);
-                link.addEventListener('focus', startVideo);
+                const scheduleVideo = () => {
+                    stopVideos();
+                    hoverTimer = setTimeout(startVideo, 150);
+                };
+                link.addEventListener('mouseenter', scheduleVideo);
+                link.addEventListener('focus', scheduleVideo);
                 const deactivate = () => {
                     if (!link.matches(':hover, :focus')) stopVideos();
                 };
@@ -308,6 +321,7 @@
             motion.addEventListener('change', stopVideos);
             pointer.addEventListener('change', stopVideos);
             document.addEventListener('visibilitychange', stopVideos);
+            trigger.addEventListener('click', stopVideos);
         });
 
         function formatDate(date) {
