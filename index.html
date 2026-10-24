@@ -132,7 +132,8 @@
             collapse: [0, 0.48], listFade: [0.46, 0.06],
             linePeak: 0.5, lineWidth: 0.16, lineShrink: [0.5, 0.18],
             introFocus: 0.25, shutdown: [0.7, 0.25], projectFocus: 0.52,
-            projectScreens: 1.35, settleDelay: 120, snapDuration: 420, forwardSnap: 0.01, reverseSnap: 0.99
+            projectScreens: 1.35, settleDelay: 120, forwardSnap: 0.01, reverseSnap: 0.99,
+            snapDefaultSpeed: 2.8, snapMinSpeed: 0.9, snapMaxSpeed: 8, snapMaxDuration: 900
         };
         const clamp = value => Math.max(0, Math.min(1, value));
         const ease = value => value * value * (3 - 2 * value);
@@ -140,7 +141,8 @@
         const layout = { stops: [0, 0, 0], overflow: 0 };
         let activeScene, revealVisible, shutdownRevealed, shutdownVisible = false;
         let previousProgress = '', queued = false, settleTimer, touching = false;
-        let previousScroll = window.scrollY, scrollDirection = 0, focusTarget = null;
+        let previousScroll = window.scrollY, previousScrollTime = performance.now();
+        let scrollDirection = 0, scrollVelocity = 0, focusTarget = null;
         let snapFrame = 0, snapping = false;
         document.querySelector('.project-header > span').textContent = `01 — ${String(rows.length).padStart(2, '0')}`;
 
@@ -246,14 +248,24 @@
         function snapTo(index) {
             cancelSnap();
             const start = window.scrollY;
-            if (Math.abs(layout.stops[index] - start) < 1) return;
+            const target = layout.stops[index];
+            const distance = Math.abs(target - start);
+            if (distance < 1) return;
+            const direction = Math.sign(target - start);
+            const gestureSpeed = Math.abs(scrollVelocity);
+            const continuingGesture = Math.sign(scrollVelocity) === direction;
+            const requestedSpeed = continuingGesture && gestureSpeed > 0.05 ? gestureSpeed : timing.snapDefaultSpeed;
+            const speed = Math.max(
+                timing.snapMinSpeed,
+                distance / timing.snapMaxDuration,
+                Math.min(timing.snapMaxSpeed, requestedSpeed)
+            );
             const started = performance.now();
             snapping = true;
             function step(now) {
-                const progress = clamp((now - started) / timing.snapDuration);
-                const eased = 1 - Math.pow(1 - progress, 3);
-                window.scrollTo({ top: start + (layout.stops[index] - start) * eased, behavior: 'instant' });
-                if (progress < 1) snapFrame = requestAnimationFrame(step);
+                const travelled = Math.min(distance, (now - started) * speed);
+                window.scrollTo({ top: start + direction * travelled, behavior: 'instant' });
+                if (travelled < distance) snapFrame = requestAnimationFrame(step);
                 else { snapping = false; snapFrame = 0; }
             }
             snapFrame = requestAnimationFrame(step);
@@ -275,14 +287,23 @@
         }
         window.addEventListener('scroll', () => {
             const position = window.scrollY;
+            const now = performance.now();
             const delta = position - previousScroll;
-            if (!snapping && Math.abs(delta) > 0.5) scrollDirection = Math.sign(delta);
+            const elapsed = now - previousScrollTime;
+            if (!snapping && Math.abs(delta) > 0.5 && elapsed > 0) {
+                scrollDirection = Math.sign(delta);
+                const velocity = delta / elapsed;
+                scrollVelocity = elapsed <= 100 && Math.sign(scrollVelocity) === Math.sign(velocity)
+                    ? scrollVelocity * 0.35 + velocity * 0.65
+                    : velocity;
+            }
             previousScroll = position;
+            previousScrollTime = now;
             if (!queued) { queued = true; requestAnimationFrame(renderScene); }
             scheduleSettle();
         }, { passive: true });
-        window.addEventListener('touchstart', () => { touching = true; cancelSnap(); focusTarget = null; }, { passive: true });
-        window.addEventListener('wheel', () => { cancelSnap(); focusTarget = null; }, { passive: true });
+        window.addEventListener('touchstart', () => { touching = true; scrollVelocity = 0; cancelSnap(); focusTarget = null; }, { passive: true });
+        window.addEventListener('wheel', () => { scrollVelocity = 0; cancelSnap(); focusTarget = null; }, { passive: true });
         window.addEventListener('keydown', event => {
             if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) cancelSnap();
         });
