@@ -7,9 +7,8 @@
     <meta name="description"
         content="Jesse Brizzi's personal website. Platform Tech Lead at Two Sigma, working on agentic AI, LLM tooling, and developer experience.">
     <title>Jesse Brizzi</title>
-    <link rel="stylesheet" href="style.css?v=20261024-touch-hold">
+    <link rel="stylesheet" href="style.css?v=20261024-cleanup">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="preload" href="style.css?v=20261024-touch-hold" as="style">
     <link rel="preload" href="images/optimized/JesseLogo.svg" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,14 +31,14 @@
             <div class="email">{ hello } @ jes.bz</div>
             <div class="social-links">
                 <a href="https://www.linkedin.com/in/jesbz" target="_blank" rel="noopener noreferrer"
-                    class="social-link-1" data-video="social-video-1">
+                    data-video="social-video-1">
                     <img src="images/optimized/linkedin-icon.png" alt="LinkedIn" width="32" height="32" loading="lazy">
                 </a>
-                <a href="https://instagram.com/j3553b" target="_blank" rel="noopener noreferrer" class="social-link-2" data-video="social-video-2">
+                <a href="https://instagram.com/j3553b" target="_blank" rel="noopener noreferrer" data-video="social-video-2">
                     <img src="images/optimized/instagram-icon.png" alt="Instagram" width="32" height="32" loading="lazy">
                 </a>
                 <a href="https://www.github.com/jes-bz" target="_blank" rel="noopener noreferrer"
-                    class="social-link-3" data-video="social-video-3">
+                    data-video="social-video-3">
                     <img src="images/optimized/github-icon.png" alt="GitHub" width="32" height="32" loading="lazy">
                 </a>
             </div>
@@ -117,11 +116,12 @@
             introFocus: 0.25, shutdown: [0.7, 0.25], projectFocus: 0.52,
             transitionDuration: 850
         };
+        const rowStagger = rows.length > 1 ? timing.rowStagger / (rows.length - 1) : 0;
         const clamp = value => Math.max(0, Math.min(1, value));
         const ease = value => value * value * (3 - 2 * value);
         const phase = (progress, [start, duration], stagger = 0) => ease(clamp((progress - start - stagger) / duration));
         let activeScene, revealVisible, shutdownRevealed, shutdownVisible = false;
-        let previousProgress = '', scenePosition = 0, sceneFrame = 0;
+        let previousPosition, scenePosition = 0, sceneFrame = 0;
         let destination = 0, holdTimer;
         document.querySelector('.project-header > span').textContent = `01 — ${String(rows.length).padStart(2, '0')}`;
 
@@ -138,11 +138,8 @@
         function renderScene() {
             const progress = clamp(scenePosition);
             const powerProgress = clamp(scenePosition - 1);
-            const progressKey = `${progress}:${powerProgress}`;
-            if (previousProgress === progressKey) return;
-            previousProgress = progressKey;
-
-            // Layout is measured on resize; this frame only writes presentation.
+            if (previousPosition === scenePosition) return;
+            previousPosition = scenePosition;
             const fade = phase(progress, timing.introFade);
             intro.style.opacity = 1 - fade;
             intro.style.transform = `scale(${1 - fade * 0.045}) translateY(${-fade * 24}px)`;
@@ -151,7 +148,6 @@
                 slat.style.transform = `translateY(${(i % 2 ? 1 : -1) * amount * 112}%) rotateX(${amount * 30}deg)`;
             });
             rows.forEach((row, i) => {
-                const rowStagger = rows.length > 1 ? timing.rowStagger / (rows.length - 1) : 0;
                 const amount = phase(progress, timing.rows, i * rowStagger);
                 row.style.opacity = amount;
                 row.style.transform = `translateY(${(1 - amount) * 22}px)`;
@@ -191,7 +187,6 @@
                 if (moveFocus) (scene === intro ? trigger : scene === projects ? projectTitle : scene || stage).focus({ preventScroll: true });
                 activeScene = scene;
             }
-
         }
         function navigate(index) {
             cancelAnimationFrame(sceneFrame);
@@ -215,6 +210,7 @@
         trigger.addEventListener('click', () => navigate(1));
         back.addEventListener('click', () => navigate(0));
         function cancelHold() { clearTimeout(holdTimer); }
+        const preventDefault = event => event.preventDefault();
         document.querySelectorAll('.empty-hold').forEach(area => {
             const target = area.closest('#projects') ? 2 : 1;
             let startX, startY;
@@ -231,9 +227,9 @@
                 beginHold();
             });
             // Safari can start native selection before a long pointer hold completes.
-            area.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
-            area.addEventListener('selectstart', event => event.preventDefault());
-            area.addEventListener('dragstart', event => event.preventDefault());
+            area.addEventListener('touchstart', preventDefault, { passive: false });
+            area.addEventListener('selectstart', preventDefault);
+            area.addEventListener('dragstart', preventDefault);
             area.addEventListener('pointermove', event => {
                 if (Math.hypot(event.clientX - startX, event.clientY - startY) > 12) cancelHold();
             });
@@ -245,7 +241,7 @@
                 }
             });
             area.addEventListener('keyup', cancelHold);
-            area.addEventListener('contextmenu', event => event.preventDefault());
+            area.addEventListener('contextmenu', preventDefault);
         });
         window.addEventListener('blur', cancelHold);
         document.addEventListener('visibilitychange', cancelHold);
@@ -256,7 +252,6 @@
         renderScene();
         // Video hover functionality
         document.addEventListener('DOMContentLoaded', () => {
-            const motion = reducedMotion;
             const pointer = window.matchMedia('(hover: hover) and (pointer: fine)');
             const links = document.querySelectorAll('.social-links a');
             let activeVideo = null, hoverTimer, videoRequest = 0;
@@ -282,8 +277,7 @@
                 const video = background.querySelector('video');
                 async function startVideo() {
                     stopVideos();
-                    if (motion.matches || !pointer.matches || document.hidden) return;
-                    if (navigator.connection?.saveData) return;
+                    if (reducedMotion.matches || !pointer.matches || document.hidden || navigator.connection?.saveData) return;
                     activeVideo = video;
                     const request = videoRequest;
                     video.querySelectorAll('source').forEach(source => { source.src = source.dataset.src; });
@@ -307,7 +301,7 @@
                 link.addEventListener('mouseleave', deactivate);
                 link.addEventListener('blur', deactivate);
             });
-            motion.addEventListener('change', stopVideos);
+            reducedMotion.addEventListener('change', stopVideos);
             pointer.addEventListener('change', stopVideos);
             document.addEventListener('visibilitychange', stopVideos);
             trigger.addEventListener('click', stopVideos);

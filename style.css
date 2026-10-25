@@ -419,13 +419,21 @@ button:focus-visible,
 }
 
 .scroll-reveal .scroll-stage {
-    position: sticky;
+    position: relative;
+    height: 100dvh;
+    top: 0;
     overflow: hidden;
 }
 
 .scroll-reveal .intro {
-    position: relative;
+    position: absolute;
+    inset: 0;
     z-index: 2;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    justify-content: safe center;
     transform-origin: center;
 }
 
@@ -439,6 +447,8 @@ button:focus-visible,
 .scroll-reveal .project-scene {
     z-index: 1;
     padding-block: 2rem;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
 }
 
 .scroll-reveal .shutdown-screen {
@@ -641,10 +651,6 @@ button:focus-visible,
     display: inline-block;
     white-space: nowrap;
 }
-.scroll-reveal .project-scene {
-    overflow-y: visible;
-    align-items: safe center;
-}
 @media (max-height: 600px) {
     .project-header { padding-bottom: 1rem; }
     .project-list a { padding-block: 1rem; }
@@ -653,32 +659,15 @@ button:focus-visible,
     .project-details { padding-block: 1rem; }
 }
 
-/* Keep one section in the viewport, including with reduced motion on iOS. */
-.scroll-reveal .intro {
-    position: absolute;
-    inset: 0;
-    min-height: 0;
-    height: 100%;
-    overflow-y: visible;
-    justify-content: safe center;
-}
 .scroll-reveal .intro,
 .scroll-reveal .project-scene,
 .scroll-reveal .shutdown-screen {
     -webkit-overflow-scrolling: touch;
 }
 
-.scroll-reveal .intro.has-overflow,
-.scroll-reveal .project-scene.has-overflow { overflow-y: auto; }
-
 /* Buttons drive the scenes; each scene scrolls only its own content. */
 html.scroll-reveal, .scroll-reveal body { height: 100%; overflow: hidden; }
 .scroll-reveal .scroll-story { height: 100%; }
-.scroll-reveal .scroll-stage { position: relative; height: 100dvh; top: 0; }
-.scroll-reveal .intro, .scroll-reveal .project-scene {
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-}
 /* Empty space below the content is the same hidden hold target in both scenes. */
 .scroll-reveal .project-scene, .scroll-reveal .shutdown-screen {
     grid-template-rows: minmax(0, 1fr) auto minmax(64px, 1fr);

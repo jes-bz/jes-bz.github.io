@@ -10,21 +10,16 @@ then
     exit 1
 fi
 
-echo "Optimizing videos..."
-
-# Optimize work video - compress and remove audio
-echo "Optimizing work video..."
-ffmpeg -i vids/work-hd_1920_1080_30fps.webm -b:v 300k -maxrate 300k -bufsize 600k -vf 'scale=1280:720' -an vids/work_720p.webm -y
-ffmpeg -i vids/work-hd_1920_1080_30fps.mp4 -b:v 300k -maxrate 300k -bufsize 600k -vf 'scale=1280:720' -an vids/work_720p.mp4 -y
-
-# Optimize fly video - compress and remove audio
-echo "Optimizing fly video..."
-ffmpeg -i vids/fly-hd_1920_1080_30fps.webm -b:v 300k -maxrate 300k -bufsize 600k -vf 'scale=1280:720' -an vids/fly_720p.webm -y
-ffmpeg -i vids/fly-hd_1920_1080_30fps.mp4 -b:v 300k -maxrate 300k -bufsize 600k -vf 'scale=1280:720' -an vids/fly_720p.mp4 -y
-
-# Optimize code video - compress and remove audio
-echo "Optimizing code video..."
-ffmpeg -i vids/code-hd_1920_1080_25fps.webm -b:v 300k -maxrate 300k -bufsize 600k -vf 'scale=1280:720' -an vids/code_720p.webm -y
-ffmpeg -i vids/code-hd_1920_1080_25fps.mp4 -b:v 300k -maxrate 300k -bufsize 600k -vf 'scale=1280:720' -an vids/code_720p.mp4 -y
+# Run from the repository root. Retain the source clips for re-encoding.
+for clip in work fly code; do
+    fps=30
+    if [ "$clip" = code ]; then fps=25; fi
+    echo "Optimizing $clip video..."
+    for format in webm mp4; do
+        ffmpeg -i "vids/$clip-hd_1920_1080_${fps}fps.$format" \
+            -b:v 300k -maxrate 300k -bufsize 600k -vf 'scale=1280:720' -an \
+            "vids/${clip}_720p.$format" -y
+    done
+done
 
 echo "Video optimization complete."
