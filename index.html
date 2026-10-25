@@ -347,7 +347,7 @@
                 }
             } catch { /* Storage may be unavailable or contain old data. */ }
             try {
-                const response = await fetch('https://api.github.com/repos/jessebrizzi/jessebrizzi.github.io/commits/master', { signal: AbortSignal.timeout(5000) });
+                const response = await fetch('https://api.github.com/repos/jes-bz/jes-bz.github.io/commits/master', { signal: AbortSignal.timeout(5000) });
                 if (!response.ok) throw new Error('Commit lookup failed');
                 const data = await response.json();
                 const commit = { date: data.commit.author.date, sha: data.sha, url: data.html_url, fetchedAt: Date.now() };
@@ -356,7 +356,7 @@
             } catch {
                 if (!cached) {
                     const link = document.createElement('a');
-                    link.href = 'https://github.com/jessebrizzi/jessebrizzi.github.io';
+                    link.href = 'https://github.com/jes-bz/jes-bz.github.io';
                     link.textContent = 'View on GitHub';
                     document.getElementById('last_updated').replaceChildren(link);
                 }
