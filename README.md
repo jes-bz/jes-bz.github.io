@@ -4,6 +4,14 @@
 
 Plain HTML, CSS, and inline JavaScript; no build step, package manager, or runtime libraries.
 
+## Domains
+
+The personal website uses https://jessebrizzi.com/. https://jes.bz/ redirects here.
+Side projects use their own `<project>.jes.bz` hostname; their `jes.bz/<project>`
+sharing links redirect there. Life Calendar is at https://life-cal.jes.bz/,
+with the stable sharing link https://jes.bz/life-cal. Future project APIs use
+`/api/` on the project hostname and require a separately configured backend.
+
 ## Local preview
 
 From the repository root, run `./run_server` (requires Python 3), then open
